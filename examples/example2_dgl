@@ -1,0 +1,97 @@
+#this example is implemented based on dgl,make sure that you have successfully installed dgl
+#this example is about binary classification for nodes,use the package networkx and matplotlib
+#to show the result of training and print the loss every epoch.
+#you can get the result by running this script.
+
+import dgl
+import numpy as np
+
+#Create a graph in DGL
+def build_karate_club_graph():
+    src = np.array([0,1,2,3,4,5,6,7])
+    dst = np.array([2,3,3,2,5,3,2,0])
+    u = np.concatenate([src,dst])
+    v = np.concatenate([dst,src])
+    return dgl.DGLGraph((u,v))
+
+G = build_karate_club_graph()
+print(G)
+print('we have %d nodes' % G.number_of_nodes())
+print('we have %d edges' % G.number_of_edges())
+
+import networkx as nx
+nx_G = G.to_networkx().to_undirected()
+pos = nx.kamada_kawai_layout(nx_G)
+nx.draw(nx_G,pos,with_labels= True,node_color = [[0.7,0.7,0.7]])
+
+# Assign features to nodes or edges
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+embed = nn.Embedding(8,5)
+G.ndata['feature'] = embed.weight
+print(G.ndata['feature'][0])
+print(G.ndata['feature'][[5,6]])
+
+#Define a Graph Convolution Network(GCN)
+from dgl.nn.pytorch import GraphConv
+
+class GCN(nn.Module):
+    def __init__(self, in_feats, hidden_size, num_classes):
+        super(GCN, self).__init__()
+        self.conv1 = GraphConv(in_feats, hidden_size)
+        self.conv2 = GraphConv(hidden_size, num_classes)
+
+    def forward(self, g, inputs):
+        h = self.conv1(g, inputs)
+        h = torch.relu(h)
+        h = self.conv2(g, h)
+        return h
+
+# The first layer transforms input features of size of 5 to a hidden size of 5.
+# The second layer transforms the hidden layer and produces output features of
+# size 2, corresponding to the two groups of the karate club
+net = GCN(5,5,2)
+
+# Data preparation and initialization
+inputs = embed.weight
+labeled_nodes = torch.tensor([0,5])
+labels = torch.tensor([0,1])
+
+# Train and visualize
+import itertools
+optimizer = torch.optim.Adam(itertools.chain(net.parameters(),embed.parameters()),lr = 0.01)
+all_logits = []
+for epoch in range(50):
+    logits = net(G,inputs)
+    all_logits.append(logits.detach())
+    logp = F.log_softmax(logits,1)
+    loss = F.nll_loss(logp[labeled_nodes],labels)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    print('epoch %d | loss: %.4f' % (epoch,loss.item()))
+
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+
+def draw(i):
+    cls1color = '#00FFFF'
+    cls2color = '#FF00FF'
+    pos = {}
+    colors = []
+    for v in range(8):
+        pos[v] = all_logits[i][v].numpy()
+        cls = pos[v].argmax()
+        colors.append(cls1color if cls else cls2color)
+    ax.cla()
+    ax.axis('off')
+    ax.set_title('Epoch : %d'% i )
+    nx.draw_networkx(nx_G.to_undirected(),pos,node_color=colors,with_labels = True,node_size = 300,ax = ax)
+fig = plt.figure(dpi = 150)
+fig.clf()
+ax = fig.subplots()
+draw(49)
+plt.show()
