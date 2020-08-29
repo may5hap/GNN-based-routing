@@ -1,4 +1,4 @@
 This folder shows two examples of GNN.The first is based on torch_geometric and the second is based on dgl.So,to run this code,you should first install torch_geometric and dgl respectively.
 The url of how to install torch_geometric is:https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html;
 The url of how to install dgl is:https://github.com/dmlc/dgl/tree/0.4.x
-The data you might use is released in the folder Dataset.
+The data you might use is released in the folder datasets.
