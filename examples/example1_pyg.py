@@ -1,5 +1,5 @@
 #this example is implemented based on pyg,make sure that you have successfully installed torch_geometric
-#the dataset used in this example is 'Cora',please download the dataset in folder 'Dataset' to your computer and 
+#the dataset used in this example is 'Cora',please download the dataset in folder 'datasets' to your computer and 
 #change the path which means you should replace the 'root' in line 26 with your own path.
 
 import torch
